@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+
+# PyInstaller build output
+build/
+dist/
+*.spec
+AppDir/
+*.iconset/
+assets/*.icns
+appimagetool.AppImage
+
+# venvs
+.venv/
+venv/
+
+# your own playlist exports (personal data, not part of the project)
+exported_playlists/

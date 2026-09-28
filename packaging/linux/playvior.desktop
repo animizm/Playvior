@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Playvior
+Comment=Export and import Plex video playlists
+Exec=playvior
+Icon=playvior
+Categories=AudioVideo;Utility;
+Terminal=false

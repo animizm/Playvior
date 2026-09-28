@@ -1,0 +1,170 @@
+name: Build installers
+
+# Builds a Playvior installer for Windows, macOS, and Linux.
+#
+# GUI binaries can't be cross-compiled: PyInstaller has to run on the OS
+# it's building for, so this uses a build matrix across the three GitHub-
+# hosted runner images instead of one job.
+#
+# Runs on:
+#   - any push of a "v*" tag (e.g. v0.1.0)      -> also publishes a GitHub
+#     Release with all three installers attached
+#   - manual trigger (Actions tab -> Run workflow) -> builds only, as
+#     downloadable workflow artifacts, for testing without tagging a release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # only used by the release job, when triggered by a tag
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: read
+        run: echo "version=$(cat VERSION | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+
+  build-windows:
+    needs: version
+    runs-on: windows-latest
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt pyinstaller
+      - name: Build executable
+        run: |
+          pyinstaller --noconfirm --onefile --windowed --name Playvior `
+            --icon assets\playvior.ico `
+            --add-data "assets;assets" `
+            gui.py
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Compile installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            "/DMyAppVersion=$env:APP_VERSION" `
+            packaging\windows\installer.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Playvior-windows-${{ env.APP_VERSION }}
+          path: dist\installer\PlayviorSetup-*.exe
+
+  build-macos:
+    needs: version
+    runs-on: macos-latest
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt pyinstaller
+      - name: Build .icns from the PNG assets
+        run: |
+          set -e
+          ICONSET=Playvior.iconset
+          mkdir "$ICONSET"
+          cp assets/playvior_16.png   "$ICONSET/icon_16x16.png"
+          cp assets/playvior_32.png   "$ICONSET/icon_16x16@2x.png"
+          cp assets/playvior_32.png   "$ICONSET/icon_32x32.png"
+          cp assets/playvior_64.png   "$ICONSET/icon_32x32@2x.png"
+          cp assets/playvior_128.png  "$ICONSET/icon_128x128.png"
+          cp assets/playvior_256.png  "$ICONSET/icon_128x128@2x.png"
+          cp assets/playvior_256.png  "$ICONSET/icon_256x256.png"
+          cp assets/playvior_256.png  "$ICONSET/icon_256x256@2x.png"
+          iconutil -c icns "$ICONSET" -o assets/Playvior.icns
+      - name: Build .app bundle
+        run: |
+          pyinstaller --noconfirm --windowed --name Playvior \
+            --icon assets/Playvior.icns \
+            --add-data "assets:assets" \
+            gui.py
+      - name: Package as .dmg
+        run: |
+          set -e
+          STAGING=dist/dmg-staging
+          mkdir -p "$STAGING"
+          cp -R "dist/Playvior.app" "$STAGING/"
+          ln -s /Applications "$STAGING/Applications"
+          hdiutil create -volname "Playvior" -srcfolder "$STAGING" \
+            -ov -format UDZO "dist/Playvior-${APP_VERSION}.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Playvior-macos-${{ env.APP_VERSION }}
+          path: dist/Playvior-*.dmg
+
+  build-linux:
+    needs: version
+    runs-on: ubuntu-latest
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Python + matching Tk binding
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk python3-pip python3-venv
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --break-system-packages -r requirements.txt pyinstaller
+      - name: Build executable
+        run: |
+          python3 -m PyInstaller --noconfirm --onefile --name playvior \
+            --add-data "assets:assets" \
+            gui.py
+      - name: Assemble AppDir
+        run: |
+          set -e
+          mkdir -p AppDir/usr/bin
+          cp dist/playvior AppDir/usr/bin/playvior
+          chmod +x AppDir/usr/bin/playvior
+          cp assets/playvior_256.png AppDir/playvior.png
+          cp packaging/linux/playvior.desktop AppDir/playvior.desktop
+          cp packaging/linux/AppRun AppDir/AppRun
+          chmod +x AppDir/AppRun
+      - name: Download appimagetool
+        run: |
+          curl -sSL -o appimagetool.AppImage \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool.AppImage
+      - name: Build AppImage
+        run: |
+          ARCH=x86_64 ./appimagetool.AppImage --appimage-extract-and-run \
+            AppDir "dist/Playvior-${APP_VERSION}-x86_64.AppImage"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Playvior-linux-${{ env.APP_VERSION }}
+          path: dist/Playvior-*.AppImage
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [version, build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Playvior v${{ needs.version.outputs.version }}
+          files: |
+            artifacts/Playvior-windows-*/PlayviorSetup-*.exe
+            artifacts/Playvior-macos-*/Playvior-*.dmg
+            artifacts/Playvior-linux-*/Playvior-*.AppImage
