@@ -1,4 +1,8 @@
-# Playvior
+<p align="center">
+  <img src="assets/playvior_256.png" width="128" height="128" alt="Playvior icon">
+</p>
+
+<h1 align="center">Playvior</h1>
 
 Playvior is a small, open-source desktop tool for **exporting and importing
 video playlists in Plex Media Server** — move your playlists between
