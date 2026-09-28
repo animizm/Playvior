@@ -11,6 +11,11 @@ name: Build installers
 #     Release with all three installers attached
 #   - manual trigger (Actions tab -> Run workflow) -> builds only, as
 #     downloadable workflow artifacts, for testing without tagging a release
+#
+# The Ubuntu jobs are pinned to ubuntu-24.04 rather than ubuntu-latest: an
+# AppImage only runs on distros whose glibc is at least as new as the one it
+# was built on, so letting "latest" roll forward would quietly drop support
+# for older Linux installs.
 
 on:
   push:
@@ -23,11 +28,11 @@ permissions:
 
 jobs:
   version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.read.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: read
         run: echo "version=$(cat VERSION | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
 
@@ -37,8 +42,8 @@ jobs:
     env:
       APP_VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install dependencies
@@ -57,7 +62,7 @@ jobs:
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
             "/DMyAppVersion=$env:APP_VERSION" `
             packaging\windows\installer.iss
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Playvior-windows-${{ env.APP_VERSION }}
           path: dist\installer\PlayviorSetup-*.exe
@@ -68,8 +73,8 @@ jobs:
     env:
       APP_VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install dependencies
@@ -104,18 +109,18 @@ jobs:
           ln -s /Applications "$STAGING/Applications"
           hdiutil create -volname "Playvior" -srcfolder "$STAGING" \
             -ov -format UDZO "dist/Playvior-${APP_VERSION}.dmg"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Playvior-macos-${{ env.APP_VERSION }}
           path: dist/Playvior-*.dmg
 
   build-linux:
     needs: version
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       APP_VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Python + matching Tk binding
         run: |
           sudo apt-get update
@@ -147,7 +152,7 @@ jobs:
         run: |
           ARCH=x86_64 ./appimagetool.AppImage --appimage-extract-and-run \
             AppDir "dist/Playvior-${APP_VERSION}-x86_64.AppImage"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Playvior-linux-${{ env.APP_VERSION }}
           path: dist/Playvior-*.AppImage
@@ -155,13 +160,13 @@ jobs:
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [version, build-windows, build-macos, build-linux]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Playvior v${{ needs.version.outputs.version }}
           files: |
