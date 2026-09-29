@@ -20,6 +20,13 @@ the GUI is just a friendlier front end onto the same tested code.
 
 Playvior runs on **Linux, Windows, and macOS**.
 
+## Screenshots
+
+<p align="center">
+  <img src="assets/playvior_export.png" width="49%" alt="Playvior's Export tab: sign in with Plex, pick a server, choose video playlists and an output folder">
+  <img src="assets/playvior_import.png" width="49%" alt="Playvior's Import tab: choose an exported JSON file, pick playlists, and set what happens if one already exists">
+</p>
+
 ## Why
 
 Plex has no built-in way to move a video playlist from one server to
