@@ -36,8 +36,4 @@ Initial public release.
   resulting release. See `packaging/README.md` for details and local build
   instructions.
 
-<!--
-Once this is pushed to GitHub and tagged, you can turn "[0.1.0]" above into
-a link by adding a line like:
-[0.1.0]: https://github.com/<your-username>/Playvior/releases/tag/v0.1.0
--->
+[0.1.0]: https://github.com/animizm/Playvior/releases/tag/v0.1.0

@@ -84,7 +84,7 @@ one-time "run anyway" option to bypass it.
 ### From source
 
 ```bash
-git clone <this repository's URL>
+git clone https://github.com/animizm/Playvior.git
 cd Playvior
 pip install -r requirements.txt
 ```
