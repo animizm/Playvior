@@ -4,6 +4,17 @@
 
 <h1 align="center">Playvior</h1>
 
+<p align="center">
+  <a href="https://github.com/animizm/Playvior/actions/workflows/build-installers.yml"><img src="https://github.com/animizm/Playvior/actions/workflows/build-installers.yml/badge.svg" alt="Build status"></a>
+  <a href="https://github.com/animizm/Playvior/releases/latest"><img src="https://img.shields.io/github/v/release/animizm/Playvior" alt="Latest release"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-3776AB?logo=python&logoColor=white" alt="Python 3.9+"></a>
+  <a href="https://github.com/animizm/Playvior/issues"><img src="https://img.shields.io/github/issues/animizm/Playvior" alt="Open issues"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later"></a>
+  <a href="https://claude.com/claude-code"><img src="https://img.shields.io/badge/AI--assisted-Claude%20Code-D97757?logo=anthropic&logoColor=white" alt="AI-assisted with Claude Code"></a>
+  <a href="#installation"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey" alt="Platform: Windows, macOS, Linux"></a>
+  <a href="https://buymeacoffee.com/scottatkins"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
+</p>
+
 Playvior is a small, open-source desktop tool for **exporting and importing
 video playlists in Plex Media Server** — move your playlists between
 servers, back them up, or share them with someone else's Plex library.
