@@ -13,15 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   default antialiased glyph rendering instead of forced canvas polygons, so
   they are smooth and even instead of stair-stepped. The dropdown chevron and
   checkbox checkmark keep their own pinned drawing methods.
-- README: added the app icon, GUI screenshots, status badges (build, release,
-  Python, issues, license, AI-assisted, platform, Buy Me a Coffee) and the real
-  clone URL in the "From source" instructions.
-- Release workflow: updated GitHub Actions to Node 24 versions and pinned the
-  Ubuntu runners to 24.04.
-
-### Added
-
-- Social preview image for the GitHub repository (`assets/social-preview.png`).
 
 ## [0.1.0] - 2026-09-27
 
