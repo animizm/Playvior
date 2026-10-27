@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   default antialiased glyph rendering instead of forced canvas polygons, so
   they are smooth and even instead of stair-stepped. The dropdown chevron and
   checkbox checkmark keep their own pinned drawing methods.
+- Export tab: Output Folder and Export Mode are now separate sections, with
+  Export Mode below Output Folder.
+- The window's minimum size is now measured from the layout itself (taller on
+  the Import tab) instead of a fixed value, so the log console at the bottom
+  is no longer squeezed when the window is made small.
 
 ### Fixed
 
@@ -21,6 +26,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   re-triggered itself on every child-widget resize until Windows ran out of
   graphics handles. It now reacts only to the window's own resize, debounces
   the check, and can no longer re-enter itself.
+- Fixed the playlist list ballooning to fill the window, pushing the options
+  and log console out of view (and eventually raising the same "CreateDIBSection"
+  error) when the window was resized. Hiding and re-showing the list's
+  scrollbar compounded its padding by the display scale factor each time; the
+  saved layout is now restored exactly.
+- Fixed the list scrollbar flickering on and off, and often showing the wrong
+  state. Whether it is needed is now judged against the list's fixed height
+  rather than its own current size, and the scrollbar no longer asks for extra
+  height of its own.
 
 ## [0.1.0] - 2026-09-27
 
