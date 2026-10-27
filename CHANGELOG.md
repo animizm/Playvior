@@ -5,6 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-10-26
+
+### Changed
+
+- Rounded corners on buttons and frames are now drawn with CustomTkinter's
+  default antialiased glyph rendering instead of forced canvas polygons, so
+  they are smooth and even instead of stair-stepped. The dropdown chevron and
+  checkbox checkmark keep their own pinned drawing methods.
+- README: added the app icon, GUI screenshots, status badges (build, release,
+  Python, issues, license, AI-assisted, platform, Buy Me a Coffee) and the real
+  clone URL in the "From source" instructions.
+- Release workflow: updated GitHub Actions to Node 24 versions and pinned the
+  Ubuntu runners to 24.04.
+
+### Added
+
+- Social preview image for the GitHub repository (`assets/social-preview.png`).
+
 ## [0.1.0] - 2026-09-27
 
 Initial public release.
@@ -36,4 +54,5 @@ Initial public release.
   resulting release. See `packaging/README.md` for details and local build
   instructions.
 
+[0.1.1]: https://github.com/animizm/Playvior/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/animizm/Playvior/releases/tag/v0.1.0

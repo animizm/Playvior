@@ -64,25 +64,37 @@ if sys.platform == "win32":
             except Exception:
                 pass
 
-# --- icon rendering method -------------------------------------------------
-# CustomTkinter draws small icons (dropdown chevrons, checkmarks) one of two
-# ways: as a glyph from its private bundled font, or as a raw vector line on
-# the Tk canvas. The font-glyph path looks smoother in principle (real OS
-# antialiasing), but its antialiasing collapses into disconnected dots at
-# these widget sizes regardless of how large we make them — that's not a
-# small-size-only artifact after all. The vector-line path is the one that
-# actually rendered a solid, connected chevron, so that's what stays on,
-# even though Tk's canvas draws it without antialiasing (a flatter, more
-# aliased look, but a correct shape).
-DrawEngine.preferred_drawing_method = "polygon_shapes"
-
-# The setting above is one global switch, and it affects the checkbox's
-# checkmark exactly the same way it affects the dropdown chevron — but the
-# checkmark looked worse on the vector-line path, not better (its glyph
-# apparently isn't subject to the same hinting breakup the chevron's is).
-# So the checkmark is pinned back to the font-glyph path specifically,
-# regardless of the global setting above, by replacing just that one draw
-# method with a version that always takes the font-glyph branch.
+# --- icon / corner rendering -------------------------------------------------
+# CustomTkinter can draw rounded corners and small icons three ways. The
+# default on Windows/Linux is "font_shapes": each corner (and icon) is a glyph
+# from a bundled font, rasterised by the operating system's text engine. That
+# gives true antialiased, evenly curved corners that stay smooth at any
+# display scaling. The alternative, "polygon_shapes", draws the corner as a
+# Tk canvas polygon, and Tk does not antialias canvas shapes, so corners come
+# out stair-stepped and uneven. So the global drawing method is left on its
+# default, and the two small icons that rendered badly as font glyphs are
+# pinned individually instead:
+#   - dropdown chevron: always drawn as a vector line (a solid, connected
+#     shape, where the glyph version broke up into dots at these sizes)
+#   - checkbox checkmark: always drawn as a font glyph (it looked worse as
+#     a vector line)
+def _line_dropdown_arrow(self, x_position, y_position, size):
+    x_position, y_position, size = round(x_position), round(y_position), round(size)
+    requires_recoloring = False
+    if not self._canvas.find_withtag("dropdown_arrow"):
+        self._canvas.create_line(
+            0, 0, 0, 0, tags="dropdown_arrow", width=round(size / 3),
+            joinstyle=tkinter.ROUND, capstyle=tkinter.ROUND,
+        )
+        self._canvas.tag_raise("dropdown_arrow")
+        requires_recoloring = True
+    self._canvas.coords(
+        "dropdown_arrow",
+        x_position - (size / 2), y_position - (size / 5),
+        x_position, y_position + (size / 5),
+        x_position + (size / 2), y_position - (size / 5),
+    )
+    return requires_recoloring
 
 
 def _font_checkmark(self, width, height, size):
@@ -99,6 +111,7 @@ def _font_checkmark(self, width, height, size):
     return requires_recoloring
 
 
+DrawEngine.draw_dropdown_arrow = _line_dropdown_arrow
 DrawEngine.draw_checkmark = _font_checkmark
 
 ctk.set_appearance_mode("dark")
