@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   they are smooth and even instead of stair-stepped. The dropdown chevron and
   checkbox checkmark keep their own pinned drawing methods.
 
+### Fixed
+
+- Fixed a crash after connecting to a server (Windows "CreateDIBSection"
+  error, with duplicated Export/Import tab buttons). The scrollbar-sync code
+  re-triggered itself on every child-widget resize until Windows ran out of
+  graphics handles. It now reacts only to the window's own resize, debounces
+  the check, and can no longer re-enter itself.
+
 ## [0.1.0] - 2026-09-27
 
 Initial public release.

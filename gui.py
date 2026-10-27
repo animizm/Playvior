@@ -266,6 +266,10 @@ class PlayviorApp(ctk.CTk):
         # active + populated with playlists) --------------------------------
         self._glow_jobs = {}    # button -> scheduled `after` id, while pulsing
 
+        # --- list scrollbar sync (see _sync_scrollbar / _on_resize) ---------
+        self._syncing_scrollbar = False
+        self._resize_job = None
+
         self._build_layout()
 
     # Sizes Windows/X11/macOS actually pick between for a window icon. Below
@@ -729,6 +733,11 @@ class PlayviorApp(ctk.CTk):
             scrollbar = getattr(frame, "_scrollbar", None)
             if canvas is None or scrollbar is None:
                 return
+            # update_idletasks() below can deliver a pending <Configure>
+            # event, which would land back here; don't re-enter.
+            if self._syncing_scrollbar:
+                return
+            self._syncing_scrollbar = True
             try:
                 frame.update_idletasks()
                 bbox = canvas.bbox("all")
@@ -742,12 +751,26 @@ class PlayviorApp(ctk.CTk):
                     self._hide_widget(scrollbar)
             except Exception:
                 pass
+            finally:
+                self._syncing_scrollbar = False
 
         attempt()
         self.after(60, attempt)
         self.after(250, attempt)
 
     def _on_resize(self, event=None):
+        # A <Configure> binding on the root also fires for every child
+        # widget that changes size (including the ones _sync_scrollbar
+        # itself touches), so only react to the window's own resize, and
+        # coalesce bursts of them into a single check.
+        if event is not None and event.widget is not self:
+            return
+        if self._resize_job is not None:
+            self.after_cancel(self._resize_job)
+        self._resize_job = self.after(50, self._apply_resize)
+
+    def _apply_resize(self):
+        self._resize_job = None
         self._sync_scrollbar(self.export_list_container)
         self._sync_scrollbar(self.import_list_container)
 
