@@ -21,6 +21,7 @@ import tkinter.messagebox as messagebox
 
 import customtkinter as ctk
 from customtkinter.windows.widgets.core_rendering.draw_engine import DrawEngine
+from customtkinter.windows.widgets.scaling import ScalingTracker
 from plexapi.myplex import MyPlexAccount, MyPlexPinLogin
 
 from export_playlists import (
@@ -271,6 +272,7 @@ class PlayviorApp(ctk.CTk):
         self._resize_job = None
 
         self._build_layout()
+        self._fit_minimum_size()
 
     # Sizes Windows/X11/macOS actually pick between for a window icon. Below
     # ~40px the full ribbon-badge mark turns to mush (the scalloped border
@@ -391,10 +393,44 @@ class PlayviorApp(ctk.CTk):
         self._build_export_tab(self.export_tab_frame)
         self._build_import_tab(self.import_tab_frame)
 
+        # A CTkScrollbar asks for 200px of height by default; when shown, that
+        # request stretched the list taller than its canvas was configured to
+        # be (and past its own content), which is what made the show/hide
+        # decision in _sync_scrollbar unstable. The grid still stretches the
+        # scrollbar to the list's full height, so it needs no height of its own.
+        for container in (self.export_list_container, self.import_list_container):
+            scrollbar = getattr(container, "_scrollbar", None)
+            if scrollbar is not None:
+                scrollbar.configure(height=0)
+
         self._current_tab = None
         self._select_tab("Export")
 
         self.bind("<Configure>", self._on_resize)
+
+    def _fit_minimum_size(self):
+        """Set the window's minimum size to what the layout actually needs.
+
+        Everything is packed top to bottom, so when the window is shorter than
+        the content Tk quietly squeezes whatever is packed last -- the log
+        console at the bottom -- down to a sliver, and the layout stops
+        looking right. The needed height depends on the display scaling and
+        fonts, so a hard-coded number goes stale; instead measure both tabs
+        (the Import tab is the taller one) and use the larger. 700 and 760
+        remain as floors.
+        """
+        scale = ScalingTracker.get_window_scaling(self) or 1.0
+        need_w = need_h = 0
+        for name in ("Import", "Export"):  # finish on Export, the startup tab
+            self._select_tab(name)
+            self.update_idletasks()
+            need_w = max(need_w, self.winfo_reqwidth())
+            need_h = max(need_h, self.winfo_reqheight())
+        min_w = max(760, math.ceil(need_w / scale))
+        min_h = max(700, math.ceil(need_h / scale))
+        self.minsize(min_w, min_h)
+        # Keep the opening size comfortably above the minimum.
+        self.geometry(f"{max(860, min_w + 40)}x{max(780, min_h + 20)}")
 
     def _select_tab(self, name):
         if name == self._current_tab:
@@ -568,14 +604,28 @@ class PlayviorApp(ctk.CTk):
             text_color=DIM,
         ).pack(anchor="w", pady=20, padx=6)
 
-        options = ctk.CTkFrame(parent, corner_radius=10)
-        options.pack(fill="x", padx=4, pady=8)
-        options.grid_columnconfigure(1, weight=1)
-
+        folder_section = ctk.CTkFrame(parent, corner_radius=10)
+        folder_section.pack(fill="x", padx=4, pady=8)
+        folder_section.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
-            options, text="EXPORT MODE", font=ctk.CTkFont(size=11, weight="bold"), text_color=MUTED
+            folder_section, text="OUTPUT FOLDER", font=ctk.CTkFont(size=11, weight="bold"), text_color=MUTED
         ).grid(row=0, column=0, sticky="w", padx=14, pady=(10, 4))
-        mode_row = ctk.CTkFrame(options, fg_color="transparent")
+        folder_row = ctk.CTkFrame(folder_section, fg_color="transparent")
+        folder_row.grid(row=1, column=0, sticky="ew", padx=14, pady=(0, 14))
+
+        self.output_folder_var = ctk.StringVar(value=str(Path.cwd() / "exported_playlists"))
+        self.output_entry = ctk.CTkEntry(folder_row, textvariable=self.output_folder_var)
+        self.output_entry.pack(side="left", fill="x", expand=True)
+        ctk.CTkButton(folder_row, text="Browse", width=80, command=self.browse_output_folder).pack(
+            side="left", padx=(8, 0)
+        )
+
+        mode_section = ctk.CTkFrame(parent, corner_radius=10)
+        mode_section.pack(fill="x", padx=4, pady=8)
+        ctk.CTkLabel(
+            mode_section, text="EXPORT MODE", font=ctk.CTkFont(size=11, weight="bold"), text_color=MUTED
+        ).grid(row=0, column=0, sticky="w", padx=14, pady=(10, 4))
+        mode_row = ctk.CTkFrame(mode_section, fg_color="transparent")
         mode_row.grid(row=1, column=0, sticky="w", padx=14, pady=(0, 14))
         # Same reasoning as the Export/Import tab switcher above: two plain
         # buttons instead of a CTkSegmentedButton, so corner rendering never
@@ -590,19 +640,6 @@ class PlayviorApp(ctk.CTk):
         self.mode_combined_btn.pack(side="left")
         self.export_mode = None
         self._select_export_mode("separate")
-
-        ctk.CTkLabel(
-            options, text="OUTPUT FOLDER", font=ctk.CTkFont(size=11, weight="bold"), text_color=MUTED
-        ).grid(row=0, column=1, sticky="w", padx=14, pady=(10, 4))
-        folder_row = ctk.CTkFrame(options, fg_color="transparent")
-        folder_row.grid(row=1, column=1, sticky="ew", padx=14, pady=(0, 14))
-
-        self.output_folder_var = ctk.StringVar(value=str(Path.cwd() / "exported_playlists"))
-        self.output_entry = ctk.CTkEntry(folder_row, textvariable=self.output_folder_var)
-        self.output_entry.pack(side="left", fill="x", expand=True)
-        ctk.CTkButton(folder_row, text="Browse", width=80, command=self.browse_output_folder).pack(
-            side="left", padx=(8, 0)
-        )
 
         action_row = ctk.CTkFrame(parent, fg_color="transparent")
         action_row.pack(fill="x", padx=4, pady=(0, 8))
@@ -707,12 +744,21 @@ class PlayviorApp(ctk.CTk):
         if not saved:
             return  # was never hidden by us
         manager, info = saved
+        # grid_info()/pack_info()/place_info() report real, already-scaled
+        # pixel values. CustomTkinter widgets override grid()/pack()/place()
+        # to multiply padding by the display scale factor, so replaying the
+        # saved values through those overrides compounds the padding by that
+        # factor on every hide/show cycle (x1.25 at 125% scaling) -- after a
+        # few window resizes the scrollbar's cell grew to hundreds of pixels
+        # tall, ballooning the list panel and finally making Windows refuse
+        # the canvas buffer ("CreateDIBSection"). Go straight to Tk's own
+        # methods so the values are restored exactly as saved.
         if manager == "grid":
-            widget.grid(**info)
+            tkinter.Grid.grid_configure(widget, **info)
         elif manager == "pack":
-            widget.pack(**info)
+            tkinter.Pack.pack_configure(widget, **info)
         elif manager == "place":
-            widget.place(**info)
+            tkinter.Place.place_configure(widget, **info)
 
     def _sync_scrollbar(self, frame):
         """
@@ -742,7 +788,11 @@ class PlayviorApp(ctk.CTk):
                 frame.update_idletasks()
                 bbox = canvas.bbox("all")
                 content_height = (bbox[3] - bbox[1]) if bbox else 0
-                visible_height = canvas.winfo_height()
+                # Compare against the canvas's *configured* height, not its
+                # live one. The live height changes when the scrollbar is
+                # shown or hidden, so judging by it made the decision depend
+                # on its own outcome and flip back and forth forever.
+                visible_height = canvas.winfo_reqheight()
                 if visible_height <= 1:
                     return  # not laid out yet; a later retry will catch it
                 if content_height > visible_height:
@@ -1045,7 +1095,10 @@ class PlayviorApp(ctk.CTk):
                     label = (
                         entry["title"]
                         if entry["type"] == "movie"
-                        else f"{entry.get('show_title')} S{entry.get('season_number')}E{entry.get('episode_number')} - {entry['title']}"
+                        else (
+                            f"{entry.get('show_title')} S{entry.get('season_number')}"
+                            f"E{entry.get('episode_number')} - {entry['title']}"
+                        )
                     )
                     self.after(0, self.log, self.import_log, f"    - {label}")
             self.after(0, self.log, self.import_log, "Done.")

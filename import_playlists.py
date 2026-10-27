@@ -8,6 +8,7 @@ import json
 import argparse
 from pathlib import Path
 from dataclasses import dataclass, field
+from typing import Optional
 
 from plexapi.server import PlexServer
 from plexapi.myplex import MyPlexAccount, MyPlexPinLogin
@@ -21,7 +22,7 @@ def connect_via_token(baseurl: str, token: str) -> PlexServer:
     return PlexServer(baseurl, token)
 
 
-def connect_via_pin_login(server_name: str = None) -> PlexServer:
+def connect_via_pin_login(server_name: Optional[str] = None) -> PlexServer:
     """
     See export_playlists.py's connect_via_pin_login for why this uses
     MyPlexPinLogin rather than a bare MyPlexAccount() call.
@@ -64,7 +65,7 @@ def load_playlist_docs(path: Path) -> list[dict]:
     A 'separate' file has a top-level 'items' key (one playlist).
     A 'combined' file has a top-level 'playlists' key (many playlists).
     """
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = json.load(f)
 
     if data.get("schema_version") not in SUPPORTED_SCHEMA_VERSIONS:
@@ -201,7 +202,7 @@ def import_from_file(
     server: PlexServer,
     path: Path,
     idx: LibraryIndex,
-    selected_titles: list[str] = None,  # None = import everything in the file
+    selected_titles: Optional[list[str]] = None,  # None = import everything in the file
     on_conflict: str = "skip",
 ) -> list[ImportResult]:
     """
@@ -226,7 +227,8 @@ def print_report(results: list[ImportResult]):
         print(f"✅ {r.playlist_title}: {len(r.matched)} matched, {len(r.unmatched)} unmatched")
         for entry in r.unmatched:
             label = entry["title"] if entry["type"] == "movie" else (
-                f"{entry.get('show_title')} S{entry.get('season_number')}E{entry.get('episode_number')} - {entry['title']}"
+                f"{entry.get('show_title')} S{entry.get('season_number')}"
+                f"E{entry.get('episode_number')} - {entry['title']}"
             )
             print(f"    - {label}")
 

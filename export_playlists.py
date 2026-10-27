@@ -8,6 +8,7 @@ import json
 import argparse
 from pathlib import Path
 from datetime import datetime, timezone
+from typing import Optional
 
 from plexapi.server import PlexServer
 from plexapi.myplex import MyPlexAccount, MyPlexPinLogin
@@ -20,7 +21,7 @@ def connect_via_token(baseurl: str, token: str) -> PlexServer:
     return PlexServer(baseurl, token)
 
 
-def connect_via_pin_login(server_name: str = None) -> PlexServer:
+def connect_via_pin_login(server_name: Optional[str] = None) -> PlexServer:
     """
     Interactive PIN-based OAuth login — this is what the GUI will eventually
     wrap. No manual token-copying required from the end user.
