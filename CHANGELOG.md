@@ -45,5 +45,5 @@ Initial public release.
   resulting release. See `packaging/README.md` for details and local build
   instructions.
 
-[0.1.1]: https://github.com/animizm/Playvior/compare/v0.1.0...v0.1.1
+[0.1.1]: https://github.com/animizm/Playvior/releases/tag/v0.1.1
 [0.1.0]: https://github.com/animizm/Playvior/releases/tag/v0.1.0
